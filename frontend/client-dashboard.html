@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Client Dashboard – QuickGig</title>
+  <link rel="stylesheet" href="style.css" />
+  <style>
+    .form-panel {
+      background: var(--bg-white);
+      border-radius: var(--radius);
+      border: 1px solid var(--border);
+      padding: 1.75rem;
+      box-shadow: var(--card-shadow);
+      position: sticky;
+      top: calc(var(--nav-height) + 1.5rem);
+    }
+
+    .char-count {
+      font-size: 0.78rem;
+      color: var(--text-light);
+      text-align: right;
+      margin-top: -0.8rem;
+      margin-bottom: 0.8rem;
+    }
+
+    .jobs-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1.25rem;
+      flex-wrap: wrap;
+      gap: 0.75rem;
+    }
+
+    .jobs-count {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      background: var(--bg);
+      padding: 0.3rem 0.85rem;
+      border-radius: var(--radius-pill);
+      border: 1px solid var(--border);
+    }
+
+    .delete-btn {
+      background: none;
+      border: none;
+      cursor: pointer;
+      color: var(--text-light);
+      font-size: 0.85rem;
+      padding: 0.25rem 0.5rem;
+      border-radius: 6px;
+      transition: all var(--transition);
+    }
+
+    .delete-btn:hover { background: #fef2f2; color: var(--danger); }
+  </style>
+</head>
+<body>
+  <div class="page-wrapper">
+
+    <!-- Navbar -->
+    <nav class="navbar">
+      <div class="nav-inner">
+        <a href="index.html" class="logo"><span>QuickGig</span><span class="logo-dot"></span></a>
+        <div class="nav-links">
+          <span class="role-badge">Client</span>
+          <a href="login.html" class="btn btn-ghost">Sign Out</a>
+        </div>
+      </div>
+    </nav>
+
+    <!-- Dashboard -->
+    <div class="dashboard-content">
+      <div class="dashboard-header">
+        <h1>Client Dashboard</h1>
+        <p id="greeting">Post jobs and manage your listings.</p>
+      </div>
+
+      <div class="dashboard-grid">
+
+        <!-- Post Job Form -->
+        <div class="form-panel">
+          <div class="panel-title">
+            <div class="icon">📝</div>
+            Post a New Job
+          </div>
+
+          <div id="form-alert"></div>
+
+          <form id="job-form" novalidate>
+            <div class="form-group">
+              <label for="job-title">Job Title</label>
+              <input type="text" id="job-title" placeholder="e.g. React Developer Needed" maxlength="80" />
+            </div>
+
+            <div class="form-group">
+              <label for="job-desc">Description</label>
+              <textarea id="job-desc" placeholder="Describe the job in detail..." maxlength="500"></textarea>
+              <div class="char-count"><span id="desc-count">0</span>/500</div>
+            </div>
+
+            <div class="form-group">
+              <label for="job-budget">Budget (USD)</label>
+              <input type="number" id="job-budget" placeholder="e.g. 500" min="1" max="100000" />
+            </div>
+
+            <button type="submit" class="btn btn-primary btn-lg btn-full" id="submit-btn">
+              🚀 Post Job
+            </button>
+          </form>
+        </div>
+
+        <!-- Posted Jobs -->
+        <div>
+          <div class="jobs-header">
+            <div class="panel-title" style="margin-bottom: 0;">
+              <div class="icon">📋</div>
+              My Posted Jobs
+            </div>
+            <span class="jobs-count" id="jobs-count">0 jobs</span>
+          </div>
+
+          <div id="jobs-list">
+            <div class="card empty-state">
+              <div class="empty-icon">📭</div>
+              <h3>No jobs posted yet</h3>
+              <p>Fill out the form to post your first job.</p>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- Footer -->
+    <footer>
+      <div class="footer-inner">
+        <div class="footer-logo">QuickGig</div>
+        <p>© 2025 QuickGig. All rights reserved.</p>
+      </div>
+    </footer>
+  </div>
+
+  <script src="script.js"></script>
+  <script>
+    // Inherit BASE_URL from script.js, preventing a crash.
+    let postedJobs = JSON.parse(localStorage.getItem('qg_client_jobs') || '[]');
+
+    // Greet user
+    const user = JSON.parse(localStorage.getItem('qg_user') || '{}');
+    if (user.name) {
+      document.getElementById('greeting').textContent = `Welcome back, ${user.name}! Manage your job postings below.`;
+    }
+
+    // Char counter
+    const descEl = document.getElementById('job-desc');
+    const countEl = document.getElementById('desc-count');
+    descEl.addEventListener('input', () => { countEl.textContent = descEl.value.length; });
+
+    // Render jobs
+    function renderJobs() {
+      const container = document.getElementById('jobs-list');
+      const countBadge = document.getElementById('jobs-count');
+      countBadge.textContent = `${postedJobs.length} job${postedJobs.length !== 1 ? 's' : ''}`;
+
+      if (postedJobs.length === 0) {
+        container.innerHTML = `
+          <div class="card empty-state">
+            <div class="empty-icon">📭</div>
+            <h3>No jobs posted yet</h3>
+            <p>Fill out the form to post your first job.</p>
+          </div>`;
+        return;
+      }
+
+      container.innerHTML = postedJobs.map((job, idx) => `
+        <div class="job-card" style="animation-delay: ${idx * 0.06}s">
+          <div class="job-card-header">
+            <div class="job-card-title">${escapeHtml(job.title)}</div>
+            <span class="job-badge budget">$${Number(job.budget).toLocaleString()}</span>
+          </div>
+          <p class="job-desc">${escapeHtml(job.description)}</p>
+          <div class="job-card-footer">
+            <div class="job-meta">
+              🕐 ${job.postedAt || 'Just now'}
+            </div>
+            <button class="delete-btn" onclick="deleteJob(${idx})" title="Remove job">🗑 Remove</button>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    async function deleteJob(idx) {
+      const job = postedJobs[idx];
+      
+      // Delete from backend if it has a real ID
+      if (job && job.id) {
+        try {
+          await fetch(`${BASE_URL}/jobs/${job.id}`, { method: 'DELETE' });
+        } catch (err) {
+          console.error("Failed to delete from server", err);
+        }
+      }
+
+      // Remove logically from UI
+      postedJobs.splice(idx, 1);
+      localStorage.setItem('qg_client_jobs', JSON.stringify(postedJobs));
+      renderJobs();
+    }
+
+    // Submit form
+    document.getElementById('job-form').addEventListener('submit', async function (e) {
+      e.preventDefault();
+      const title = document.getElementById('job-title').value.trim();
+      const description = document.getElementById('job-desc').value.trim();
+      const budget = document.getElementById('job-budget').value.trim();
+      const btn = document.getElementById('submit-btn');
+      const alertEl = document.getElementById('form-alert');
+
+      clearAlerts(alertEl);
+
+      if (!title) { showAlert(alertEl, 'error', '⚠️ Please enter a job title.'); return; }
+      if (title.length < 5) { showAlert(alertEl, 'error', '⚠️ Job title must be at least 5 characters.'); return; }
+      if (!description) { showAlert(alertEl, 'error', '⚠️ Please enter a job description.'); return; }
+      if (description.length < 20) { showAlert(alertEl, 'error', '⚠️ Description should be at least 20 characters.'); return; }
+      if (!budget || isNaN(budget) || Number(budget) < 1) { showAlert(alertEl, 'error', '⚠️ Please enter a valid budget amount.'); return; }
+
+      btn.textContent = 'Posting...';
+      btn.disabled = true;
+
+      const jobData = { title, description, budget: Number(budget) };
+
+      try {
+        const response = await fetch(`${BASE_URL}/jobs`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(jobData),
+        });
+
+        if (!response.ok) throw new Error('Server error');
+        const result = await response.json();
+        handleSuccess(result.job || jobData);
+      } catch (err) {
+        // Fallback: save locally if backend is unavailable
+        console.warn('Backend unavailable, saving locally:', err.message);
+        handleSuccess(jobData);
+      }
+    });
+
+    function handleSuccess(job) {
+      const alertEl = document.getElementById('form-alert');
+      const btn = document.getElementById('submit-btn');
+      const now = new Date();
+      const timeStr = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+      // Put the returned job properties AFTER so the backend's ID takes priority!
+      const savedJob = { postedAt: `Today at ${timeStr}`, id: Date.now().toString(), ...job };
+      postedJobs.unshift(savedJob);
+      localStorage.setItem('qg_client_jobs', JSON.stringify(postedJobs));
+      localStorage.setItem('qg_all_jobs', JSON.stringify(postedJobs));
+
+      showAlert(alertEl, 'success', `✅ Job "${savedJob.title}" posted successfully!`);
+      document.getElementById('job-form').reset();
+      document.getElementById('desc-count').textContent = '0';
+      renderJobs();
+
+      btn.textContent = '🚀 Post Job';
+      btn.disabled = false;
+    }
+
+    // Init
+    renderJobs();
+  </script>
+</body>
+</html>

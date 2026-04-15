@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Register – QuickGig</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="page-wrapper">
+
+    <!-- Navbar -->
+    <nav class="navbar">
+      <div class="nav-inner">
+        <a href="index.html" class="logo"><span>QuickGig</span><span class="logo-dot"></span></a>
+        <div class="nav-links">
+          <a href="login.html" class="btn btn-ghost">Login</a>
+        </div>
+      </div>
+    </nav>
+
+    <!-- Auth Page -->
+    <div class="auth-page">
+      <div class="auth-card" style="max-width: 480px;">
+
+        <div class="auth-header">
+          <div class="auth-icon">🚀</div>
+          <h2>Create your account</h2>
+          <p>Join QuickGig and start in minutes</p>
+        </div>
+
+        <div id="alert-container"></div>
+
+        <form id="register-form" novalidate>
+          <div class="form-group">
+            <label for="name">Full Name</label>
+            <input type="text" id="name" name="name" placeholder="Jane Doe" autocomplete="name" />
+          </div>
+
+          <div class="form-group">
+            <label for="email">Email address</label>
+            <input type="email" id="email" name="email" placeholder="you@example.com" autocomplete="email" />
+          </div>
+
+          <div class="form-group">
+            <label for="password">Password</label>
+            <input type="password" id="password" name="password" placeholder="Min. 6 characters" autocomplete="new-password" />
+          </div>
+
+          <div class="form-group">
+            <label for="role">I want to...</label>
+            <select id="role" name="role">
+              <option value="" disabled selected>Select your role</option>
+              <option value="client">Hire Freelancers (Client)</option>
+              <option value="freelancer">Find Work (Freelancer)</option>
+            </select>
+          </div>
+
+          <div style="margin-top: 0.5rem;">
+            <button type="submit" class="btn btn-primary btn-lg btn-full" id="register-btn">
+              Create Account
+            </button>
+          </div>
+        </form>
+
+        <div class="divider"></div>
+
+        <div class="auth-footer-text">
+          Already have an account? <a href="login.html">Sign in</a>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- Footer -->
+    <footer>
+      <div class="footer-inner">
+        <div class="footer-logo">QuickGig</div>
+        <p>© 2025 QuickGig. All rights reserved.</p>
+      </div>
+    </footer>
+
+  </div>
+
+  <script src="script.js"></script>
+  <script>
+    document.getElementById('register-form').addEventListener('submit', async function (e) {
+      e.preventDefault();
+      const name = document.getElementById('name').value.trim();
+      const email = document.getElementById('email').value.trim();
+      const password = document.getElementById('password').value;
+      const role = document.getElementById('role').value;
+      const btn = document.getElementById('register-btn');
+      const alertContainer = document.getElementById('alert-container');
+
+      clearAlerts(alertContainer);
+
+      if (!name || name.length < 2) { showAlert(alertContainer, 'error', '⚠️ Please enter your full name.'); return; }
+      if (!email) { showAlert(alertContainer, 'error', '⚠️ Please enter your email address.'); return; }
+      if (!isValidEmail(email)) { showAlert(alertContainer, 'error', '⚠️ Please enter a valid email address.'); return; }
+      if (!password || password.length < 6) { showAlert(alertContainer, 'error', '⚠️ Password must be at least 6 characters.'); return; }
+      if (!role) { showAlert(alertContainer, 'error', '⚠️ Please select your role.'); return; }
+
+      btn.textContent = 'Creating account...';
+      btn.disabled = true;
+
+      try {
+        await delay(900);
+        localStorage.setItem('qg_role', role);
+        localStorage.setItem('qg_user', JSON.stringify({ name, email, role }));
+        showAlert(alertContainer, 'success', `✅ Account created! Welcome, ${name}! Redirecting...`);
+        setTimeout(() => {
+          window.location.href = role === 'freelancer' ? 'freelancer-dashboard.html' : 'client-dashboard.html';
+        }, 1000);
+      } catch (err) {
+        showAlert(alertContainer, 'error', '❌ Registration failed. Please try again.');
+        btn.textContent = 'Create Account';
+        btn.disabled = false;
+      }
+    });
+  </script>
+</body>
+</html>

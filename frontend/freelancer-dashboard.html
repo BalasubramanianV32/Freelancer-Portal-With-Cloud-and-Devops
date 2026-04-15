@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Freelancer Dashboard – QuickGig</title>
+  <link rel="stylesheet" href="style.css" />
+  <style>
+    .dash-full {
+      max-width: 860px;
+      margin: 0 auto;
+    }
+
+    .toolbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1.5rem;
+      flex-wrap: wrap;
+      gap: 1rem;
+    }
+
+    .search-bar {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      background: var(--bg-white);
+      border: 1.5px solid var(--border);
+      border-radius: var(--radius-pill);
+      padding: 0.5rem 1rem;
+      transition: border-color var(--transition), box-shadow var(--transition);
+      flex: 1;
+      max-width: 320px;
+    }
+
+    .search-bar:focus-within {
+      border-color: var(--primary);
+      box-shadow: 0 0 0 4px var(--primary-glow);
+    }
+
+    .search-bar input {
+      border: none;
+      background: none;
+      outline: none;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 0.9rem;
+      color: var(--text-dark);
+      width: 100%;
+    }
+
+    .search-bar input::placeholder { color: var(--text-light); }
+
+    .applied-tag {
+      font-size: 0.75rem;
+      font-weight: 600;
+      padding: 0.2rem 0.6rem;
+      border-radius: var(--radius-pill);
+      background: var(--success-light);
+      color: #065f46;
+    }
+
+    .apply-btn {
+      min-width: 90px;
+    }
+
+    .apply-btn.applied {
+      background: var(--success-light) !important;
+      color: var(--success) !important;
+      border-color: #a7f3d0 !important;
+      box-shadow: none !important;
+      cursor: default;
+    }
+
+    .apply-btn.applied:hover { transform: none !important; }
+
+    @media (max-width: 640px) {
+      .search-bar { max-width: 100%; }
+    }
+  </style>
+</head>
+<body>
+  <div class="page-wrapper">
+
+    <!-- Navbar -->
+    <nav class="navbar">
+      <div class="nav-inner">
+        <a href="index.html" class="logo"><span>QuickGig</span><span class="logo-dot"></span></a>
+        <div class="nav-links">
+          <span class="role-badge" style="background: #fef3c7; color: #92400e;">Freelancer</span>
+          <a href="login.html" class="btn btn-ghost">Sign Out</a>
+        </div>
+      </div>
+    </nav>
+
+    <!-- Dashboard -->
+    <div class="dashboard-content">
+      <div class="dashboard-header">
+        <h1>Freelancer Dashboard</h1>
+        <p id="greeting">Browse available jobs and apply to the ones that match your skills.</p>
+      </div>
+
+      <div style="max-width: 1160px; margin: 0 auto;">
+
+        <div class="toolbar">
+          <div class="panel-title" style="margin-bottom: 0;">
+            <div class="icon">🔍</div>
+            Available Jobs
+            <span id="jobs-badge" class="jobs-count" style="font-size: 0.8rem; color: var(--text-muted); background: var(--bg); padding: 0.25rem 0.75rem; border-radius: 99px; border: 1px solid var(--border); margin-left: 0.5rem;"></span>
+          </div>
+          <div style="display: flex; gap: 0.75rem; flex-wrap: wrap; align-items: center;">
+            <div class="search-bar">
+              <span>🔎</span>
+              <input type="text" id="search-input" placeholder="Search jobs..." />
+            </div>
+            <button class="btn btn-outline" id="refresh-btn" onclick="loadJobs()">↺ Refresh</button>
+          </div>
+        </div>
+
+        <div id="alert-area"></div>
+        <div id="jobs-container"></div>
+
+      </div>
+    </div>
+
+    <!-- Footer -->
+    <footer>
+      <div class="footer-inner">
+        <div class="footer-logo">QuickGig</div>
+        <p>© 2025 QuickGig. All rights reserved.</p>
+      </div>
+    </footer>
+  </div>
+
+  <script src="script.js"></script>
+  <script>
+    // BASE_URL is already declared in script.js, so we don't declare it again!
+    let allJobs = [];
+    let appliedJobs = JSON.parse(localStorage.getItem('qg_applied_jobs') || '[]');
+
+    // Greet user
+    const user = JSON.parse(localStorage.getItem('qg_user') || '{}');
+    if (user.name) {
+      document.getElementById('greeting').textContent = `Welcome, ${user.name}! Find your next great gig below.`;
+    }
+
+    // Demo fallback jobs
+    const DEMO_JOBS = [
+      { id: 1, title: 'React Frontend Developer', description: 'We need an experienced React developer to build a responsive dashboard with charts, tables, and real-time data updates.', budget: 1200, postedAt: 'Today at 9:00 AM' },
+      { id: 2, title: 'Logo & Brand Identity Design', description: 'Looking for a creative designer to create a full brand identity including logo, color palette, and typography guidelines.', budget: 450, postedAt: 'Today at 10:30 AM' },
+      { id: 3, title: 'Content Writer – Tech Blog', description: 'Seeking a skilled tech writer to produce 8 in-depth articles per month covering AI, software development, and web trends.', budget: 600, postedAt: 'Today at 11:00 AM' },
+      { id: 4, title: 'Node.js Backend API Development', description: 'Build a RESTful API with authentication, database integration (PostgreSQL), and comprehensive documentation.', budget: 1800, postedAt: 'Yesterday' },
+      { id: 5, title: 'Mobile App (Flutter) Developer', description: 'Develop a cross-platform mobile app for iOS and Android using Flutter. Must have experience with Firebase and state management.', budget: 3000, postedAt: 'Yesterday' },
+    ];
+
+    async function loadJobs() {
+      const container = document.getElementById('jobs-container');
+      const badge = document.getElementById('jobs-badge');
+      const alertArea = document.getElementById('alert-area');
+      clearAlerts(alertArea);
+
+      container.innerHTML = `<div class="loading-state"><div class="spinner"></div><p style="color: var(--text-muted); font-size: 0.9rem;">Fetching available jobs...</p></div>`;
+
+      try {
+        const response = await fetch(`${BASE_URL}/jobs`);
+        if (!response.ok) throw new Error('Server error');
+        const data = await response.json();
+        allJobs = data.jobs || data || [];
+        renderJobs(allJobs);
+      } catch (err) {
+        // Use local + demo jobs as fallback
+        const localJobs = JSON.parse(localStorage.getItem('qg_all_jobs') || '[]');
+        allJobs = [...localJobs, ...DEMO_JOBS.filter(d => !localJobs.find(l => l.title === d.title))];
+        showAlert(alertArea, 'info', '💡 Showing demo jobs. Connect a backend at localhost:5000 for live data.');
+        renderJobs(allJobs);
+      }
+    }
+
+    function renderJobs(jobs) {
+      const container = document.getElementById('jobs-container');
+      const badge = document.getElementById('jobs-badge');
+      badge.textContent = `${jobs.length} available`;
+
+      if (jobs.length === 0) {
+        container.innerHTML = `
+          <div class="card empty-state">
+            <div class="empty-icon">🔍</div>
+            <h3>No jobs found</h3>
+            <p>Try adjusting your search or check back later.</p>
+          </div>`;
+        return;
+      }
+
+      container.innerHTML = `<div class="jobs-grid">${jobs.map((job, idx) => `
+        <div class="job-card" style="animation-delay: ${idx * 0.07}s">
+          <div class="job-card-header">
+            <div class="job-card-title">${escapeHtml(job.title)}</div>
+            <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 0.3rem; flex-shrink: 0;">
+              <span class="job-badge budget">$${Number(job.budget).toLocaleString()}</span>
+              ${appliedJobs.includes(job.id) ? '<span class="applied-tag">✓ Applied</span>' : ''}
+            </div>
+          </div>
+          <p class="job-desc">${escapeHtml(job.description)}</p>
+          <div class="job-card-footer">
+            <div class="job-meta">📅 ${job.postedAt || 'Recently posted'}</div>
+            <button
+              class="btn btn-primary apply-btn ${appliedJobs.includes(job.id) ? 'applied' : ''}"
+              id="apply-btn-${job.id}"
+              onclick="applyToJob(${job.id}, '${escapeHtml(job.title)}')"
+              ${appliedJobs.includes(job.id) ? 'disabled' : ''}
+            >
+              ${appliedJobs.includes(job.id) ? '✓ Applied' : 'Apply Now'}
+            </button>
+          </div>
+        </div>
+      `).join('')}</div>`;
+    }
+
+    async function applyToJob(jobId, jobTitle) {
+      const btn = document.getElementById(`apply-btn-${jobId}`);
+      if (!btn || btn.disabled) return;
+
+      btn.textContent = 'Applying...';
+      btn.disabled = true;
+
+      await delay(700);
+
+      appliedJobs.push(jobId);
+      localStorage.setItem('qg_applied_jobs', JSON.stringify(appliedJobs));
+
+      btn.textContent = '✓ Applied';
+      btn.classList.add('applied');
+
+      showAlert(document.getElementById('alert-area'), 'success', `✅ Application submitted for "${jobTitle}"! Good luck!`);
+      setTimeout(() => clearAlerts(document.getElementById('alert-area')), 4000);
+
+      // Refresh to show applied tag
+      renderJobs(allJobs.filter(j => matchesSearch(j)));
+    }
+
+    // Search
+    let searchTimeout;
+    document.getElementById('search-input').addEventListener('input', function () {
+      clearTimeout(searchTimeout);
+      searchTimeout = setTimeout(() => {
+        renderJobs(allJobs.filter(j => matchesSearch(j)));
+      }, 250);
+    });
+
+    function matchesSearch(job) {
+      const q = document.getElementById('search-input').value.toLowerCase().trim();
+      if (!q) return true;
+      return job.title.toLowerCase().includes(q) || job.description.toLowerCase().includes(q);
+    }
+
+    // Init
+    loadJobs();
+  </script>
+</body>
+</html>

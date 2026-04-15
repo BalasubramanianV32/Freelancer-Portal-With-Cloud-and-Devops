@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Login – QuickGig</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="page-wrapper">
+
+    <!-- Navbar -->
+    <nav class="navbar">
+      <div class="nav-inner">
+        <a href="index.html" class="logo"><span>QuickGig</span><span class="logo-dot"></span></a>
+        <div class="nav-links">
+          <a href="register.html" class="btn btn-primary">Create Account</a>
+        </div>
+      </div>
+    </nav>
+
+    <!-- Auth Page -->
+    <div class="auth-page">
+      <div class="auth-card">
+
+        <div class="auth-header">
+          <div class="auth-icon">👋</div>
+          <h2>Welcome back</h2>
+          <p>Sign in to your QuickGig account</p>
+        </div>
+
+        <div id="alert-container"></div>
+
+        <form id="login-form" novalidate>
+          <div class="form-group">
+            <label for="email">Email address</label>
+            <input type="email" id="email" name="email" placeholder="you@example.com" autocomplete="email" />
+          </div>
+
+          <div class="form-group">
+            <label for="password">Password</label>
+            <input type="password" id="password" name="password" placeholder="Enter your password" autocomplete="current-password" />
+          </div>
+
+          <div style="margin-top: 0.5rem;">
+            <button type="submit" class="btn btn-primary btn-lg btn-full" id="login-btn">
+              Sign In
+            </button>
+          </div>
+        </form>
+
+        <div class="divider"></div>
+
+        <div class="auth-footer-text">
+          Don't have an account? <a href="register.html">Create one free</a>
+        </div>
+
+        <div style="margin-top: 1.5rem; display: flex; gap: 0.75rem; flex-direction: column;">
+          <p style="text-align: center; font-size: 0.8rem; color: var(--text-muted); margin-bottom: 0.5rem; font-weight: 500;">Quick demo access</p>
+          <a href="client-dashboard.html" class="btn btn-outline btn-full">🏢 Enter as Client</a>
+          <a href="freelancer-dashboard.html" class="btn btn-outline btn-full">✨ Enter as Freelancer</a>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- Footer -->
+    <footer>
+      <div class="footer-inner">
+        <div class="footer-logo">QuickGig</div>
+        <p>© 2025 QuickGig. All rights reserved.</p>
+      </div>
+    </footer>
+
+  </div>
+
+  <script src="script.js"></script>
+  <script>
+    document.getElementById('login-form').addEventListener('submit', async function (e) {
+      e.preventDefault();
+      const email = document.getElementById('email').value.trim();
+      const password = document.getElementById('password').value;
+      const btn = document.getElementById('login-btn');
+      const alertContainer = document.getElementById('alert-container');
+
+      clearAlerts(alertContainer);
+
+      if (!email) { showAlert(alertContainer, 'error', '⚠️ Please enter your email address.'); return; }
+      if (!isValidEmail(email)) { showAlert(alertContainer, 'error', '⚠️ Please enter a valid email address.'); return; }
+      if (!password) { showAlert(alertContainer, 'error', '⚠️ Please enter your password.'); return; }
+      if (password.length < 6) { showAlert(alertContainer, 'error', '⚠️ Password must be at least 6 characters.'); return; }
+
+      btn.textContent = 'Signing in...';
+      btn.disabled = true;
+
+      try {
+        // Demo redirect based on stored role or default to client
+        await delay(800);
+        const role = localStorage.getItem('qg_role') || 'client';
+        showAlert(alertContainer, 'success', '✅ Login successful! Redirecting...');
+        setTimeout(() => {
+          window.location.href = role === 'freelancer' ? 'freelancer-dashboard.html' : 'client-dashboard.html';
+        }, 900);
+      } catch (err) {
+        showAlert(alertContainer, 'error', '❌ Login failed. Please check your credentials.');
+        btn.textContent = 'Sign In';
+        btn.disabled = false;
+      }
+    });
+  </script>
+</body>
+</html>
